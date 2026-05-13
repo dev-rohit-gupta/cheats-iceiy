@@ -6,7 +6,7 @@ import { authOptions } from "@/lib/auth/auth";
  * Protect admin routes
  * All routes under /dashboard/* require admin role
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user) {
