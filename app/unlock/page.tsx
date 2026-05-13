@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
-export default function UnlockPage() {
+function UnlockContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const cheatId = searchParams.get('cheatId');
@@ -102,5 +102,13 @@ export default function UnlockPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function UnlockPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <UnlockContent />
+    </Suspense>
   );
 }
