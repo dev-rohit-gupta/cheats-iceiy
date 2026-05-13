@@ -7,7 +7,7 @@ import { isAdmin } from "@/lib/utils";
  * Admin route protection middleware
  * Checks if user has admin role
  */
-export async function withAdminCheck(req: NextRequest) {
+export async function withAdminCheck(_req: NextRequest) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user || !isAdmin(session.user.role)) {
@@ -23,7 +23,7 @@ export async function withAdminCheck(req: NextRequest) {
 /**
  * User authentication check middleware
  */
-export async function withAuthCheck(req: NextRequest) {
+export async function withAuthCheck(_req: NextRequest) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user) {

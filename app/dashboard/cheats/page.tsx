@@ -1,10 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getServerSession } from 'next-auth';
 import Link from 'next/link';
-import { Edit2, Trash2, Copy } from 'lucide-react';
-import { authOptions } from '@/lib/auth';
+import { Edit2, Trash2 } from 'lucide-react';
 
 interface Cheat {
   id: number;

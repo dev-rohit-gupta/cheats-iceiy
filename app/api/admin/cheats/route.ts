@@ -42,37 +42,33 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     const data = validationResult.data;
 
-    // Create cheat
+    // Create cheat - convert undefined to null for optional fields
     const cheat = await createCheat({
-      ...data,
+      title: data.title,
+      driveLink: data.driveLink,
+      subject: data.subject,
       adminId: session.user.id,
+      branch: data.branch ?? null,
+      notes: data.notes ?? null,
+      accessLevel: data.accessLevel,
+      status: 'active',
+      tags: data.tags ?? null,
     });
 
-    // Log audit
+    // Log audit entry
     await db.insert(auditLogs).values({
       adminId: session.user.id,
-      action: "create",
-      resource: "cheat",
+      action: 'CREATE_CHEAT',
+      resource: 'cheat',
       resourceId: cheat.id,
-      details: JSON.stringify({
-        title: cheat.title,
-        subject: cheat.subject,
-        accessLevel: cheat.accessLevel,
-      }),
+      details: JSON.stringify(cheat),
     });
 
-    return NextResponse.json(
-      apiResponse({
-        success: true,
-        message: "Cheat created successfully",
-        data: cheat,
-      }),
-      { status: 201 }
-    );
+    return NextResponse.json(apiResponse(cheat), { status: 201 });
   } catch (error) {
-    console.error("Create cheat error:", error);
+    console.error("Error creating cheat:", error);
     return NextResponse.json(
-      apiError("Internal server error", 500),
+      apiError("Failed to create cheat", 500),
       { status: 500 }
     );
   }

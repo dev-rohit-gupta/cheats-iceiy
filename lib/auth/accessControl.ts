@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { shareCodes, shareCodeUses, cheats } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
-import { isExpired, getClientIp } from "@/lib/utils";
+import { eq } from "drizzle-orm";
+import { isExpired } from "@/lib/utils";
 
 export interface ShareCodeValidationResult {
   valid: boolean;
@@ -94,7 +94,7 @@ export async function recordShareCodeUse(
   await db.insert(shareCodeUses).values({
     codeId,
     ipAddress,
-    userAgent,
+    ...(userAgent ? { userAgent } : {}),
   });
 }
 

@@ -41,7 +41,7 @@ async function seed() {
 
     // Create share code for sample cheat
     const shareCode = generateShareCode();
-    const shareCodeRecord = await db
+    await db
       .insert(shareCodes)
       .values({
         code: shareCode,
@@ -51,8 +51,7 @@ async function seed() {
         scope: "single",
         status: "active",
         createdBy: adminUser[0].id,
-      })
-      .returning();
+      });
 
     console.log("✅ Created share code:", shareCode);
 

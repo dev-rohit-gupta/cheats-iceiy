@@ -5,7 +5,6 @@ import {
   text,
   timestamp,
   integer,
-  boolean,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";

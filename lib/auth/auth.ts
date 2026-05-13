@@ -5,7 +5,6 @@ import { db } from "@/lib/db";
 import { users, accounts } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { verifyPassword } from "@/lib/utils";
-import type { User } from "@/types";
 
 if (!process.env.NEXTAUTH_SECRET) {
   throw new Error("NEXTAUTH_SECRET is not set");
@@ -25,7 +24,7 @@ export const authOptions: NextAuthOptions = {
     // JWT callback - attach user data to token
     async jwt({ token, user, profile, account }) {
       if (user) {
-        token.id = user.id;
+        token.id = typeof user.id === "string" ? parseInt(user.id, 10) : user.id;
         token.email = user.email;
         token.role = user.role;
         token.name = user.name;
@@ -49,22 +48,22 @@ export const authOptions: NextAuthOptions = {
               type: account.type,
               provider: account.provider,
               providerAccountId: account.providerAccountId,
-              refreshToken: account.refresh_token,
-              accessToken: account.access_token,
-              expiresAt: account.expires_at,
-              tokenType: account.token_type,
-              scope: account.scope,
-              idToken: account.id_token,
-              sessionState: account.session_state,
+              ...(account.refresh_token ? { refreshToken: account.refresh_token } : {}),
+              ...(account.access_token ? { accessToken: account.access_token } : {}),
+              ...(account.expires_at ? { expiresAt: account.expires_at } : {}),
+              ...(account.token_type ? { tokenType: account.token_type } : {}),
+              ...(account.scope ? { scope: account.scope } : {}),
+              ...(account.id_token ? { idToken: account.id_token } : {}),
+              ...(account.session_state ? { sessionState: account.session_state } : {}),
             });
           }
 
           token.id = existingUser.id;
-          token.role = existingUser.role;
+          token.role = (existingUser.role === "admin" ? "admin" : "user") as "user" | "admin";
           token.name = existingUser.name;
         } else if (user) {
           // Create new user from Google OAuth
-          token.id = user.id;
+          token.id = typeof user.id === "string" ? parseInt(user.id, 10) : user.id;
           token.role = user.role;
         }
       }
@@ -75,10 +74,10 @@ export const authOptions: NextAuthOptions = {
     // Session callback - attach token data to session
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.id;
-        session.user.email = token.email;
-        session.user.role = token.role;
-        session.user.name = token.name;
+        session.user.id = (token.id as number) || 0;
+        session.user.email = (token.email as string) || "";
+        session.user.role = (token.role as "user" | "admin") || "user";
+        session.user.name = (token.name as string | null) || null;
       }
       return session;
     },
@@ -130,13 +129,16 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        return {
-          id: user.id.toString(),
+        // Return user object with proper typing
+        const result = {
+          id: String(user.id),
           email: user.email,
           name: user.name,
           image: null,
-          role: user.role,
-        } as User & { id: string };
+          role: (user.role === "admin" ? "admin" : "user"),
+        };
+
+        return result as any;
       },
     }),
 
@@ -165,13 +167,15 @@ export const authOptions: NextAuthOptions = {
           user = newUser[0];
         }
 
-        return {
-          id: user.id.toString(),
+        const result = {
+          id: String(user.id),
           email: user.email,
           name: user.name,
           image: profile.picture,
-          role: user.role,
-        } as User & { id: string };
+          role: (user.role === "admin" ? "admin" : "user"),
+        };
+
+        return result as any;
       },
     }),
   ],

@@ -46,7 +46,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     while (!isUnique && attempts < 10) {
       code = generateShareCode();
       const existing = await db.query.shareCodes.findFirst({
-        where: (sc) => sc.code.eq(code),
+        where: (sc, { eq }) => eq(sc.code, code),
       });
       if (!existing) {
         isUnique = true;
@@ -67,8 +67,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       .values({
         code: code!,
         cheatId,
-        expiresAt,
-        usageLimit,
+        expiresAt: expiresAt ?? null,
+        usageLimit: usageLimit ?? null,
         scope,
         createdBy: session.user.id,
       })

@@ -8,7 +8,7 @@ import { isAdmin, apiError } from "@/lib/utils";
  * GET /api/cheats
  * List cheats (public for non-admins, all for admins)
  */
-export async function GET(req: NextRequest): Promise<NextResponse> {
+export async function GET(_req: NextRequest): Promise<NextResponse> {
   try {
     const session = await getServerSession(authOptions);
 

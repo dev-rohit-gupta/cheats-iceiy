@@ -32,10 +32,19 @@ export async function createCheatAction(data: CreateCheatInput) {
       };
     }
 
-    // Create cheat
+    const validData = validationResult.data;
+
+    // Create cheat - convert undefined to null for optional fields
     const cheat = await createCheat({
-      ...validationResult.data,
+      title: validData.title,
+      driveLink: validData.driveLink,
+      subject: validData.subject,
       adminId: session.user.id,
+      branch: validData.branch ?? null,
+      notes: validData.notes ?? null,
+      accessLevel: validData.accessLevel,
+      status: 'active',
+      tags: validData.tags ?? null,
     });
 
     return {
@@ -55,13 +64,12 @@ export async function createCheatAction(data: CreateCheatInput) {
  * Server action to update a cheat
  */
 export async function updateCheatAction(
-  cheatId: number,
+  id: number,
   data: UpdateCheatInput
 ) {
   try {
     const session = await getServerSession(authOptions);
 
-    // Server-side permission check
     if (!session?.user?.id || !isAdmin(session.user.role)) {
       return {
         success: false,
@@ -69,7 +77,6 @@ export async function updateCheatAction(
       };
     }
 
-    // Validate input
     const validationResult = updateCheatSchema.safeParse(data);
     if (!validationResult.success) {
       return {
@@ -79,15 +86,29 @@ export async function updateCheatAction(
       };
     }
 
-    // Update cheat
-    const cheat = await updateCheat(cheatId, validationResult.data);
+    const validData = validationResult.data;
+    
+    // Build update object with only defined fields, converting undefined to null
+    const updateData: Record<string, unknown> = {};
+    if (validData.title !== undefined) updateData.title = validData.title;
+    if (validData.driveLink !== undefined) updateData.driveLink = validData.driveLink;
+    if (validData.subject !== undefined) updateData.subject = validData.subject;
+    if (validData.branch !== undefined) updateData.branch = validData.branch ?? null;
+    if (validData.notes !== undefined) updateData.notes = validData.notes ?? null;
+    if (validData.accessLevel !== undefined) updateData.accessLevel = validData.accessLevel;
+    if (validData.status !== undefined) updateData.status = validData.status;
+    if (validData.tags !== undefined) updateData.tags = validData.tags ?? null;
 
-    if (!cheat) {
-      return {
-        success: false,
-        error: "Cheat not found",
-      };
-    }
+    const cheat = await updateCheat(id, updateData as Partial<{
+      title: string;
+      driveLink: string;
+      subject: string;
+      branch: string | null;
+      notes: string | null;
+      accessLevel: string;
+      status: string;
+      tags: string | null;
+    }>);
 
     return {
       success: true,
@@ -105,11 +126,10 @@ export async function updateCheatAction(
 /**
  * Server action to delete a cheat
  */
-export async function deleteCheatAction(cheatId: number) {
+export async function deleteCheatAction(id: number) {
   try {
     const session = await getServerSession(authOptions);
 
-    // Server-side permission check
     if (!session?.user?.id || !isAdmin(session.user.role)) {
       return {
         success: false,
@@ -117,19 +137,10 @@ export async function deleteCheatAction(cheatId: number) {
       };
     }
 
-    // Delete cheat
-    const deleted = await deleteCheat(cheatId);
-
-    if (!deleted) {
-      return {
-        success: false,
-        error: "Cheat not found",
-      };
-    }
+    await deleteCheat(id);
 
     return {
       success: true,
-      message: "Cheat deleted successfully",
     };
   } catch (error) {
     console.error("Delete cheat action error:", error);

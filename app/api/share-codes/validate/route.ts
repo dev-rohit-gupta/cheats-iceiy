@@ -1,17 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { shareCodes } from "@/lib/db/schema";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth/auth";
-import {
-  validateShareCode,
-  recordShareCodeUse,
-} from "@/lib/auth/accessControl";
-import { generateShareCode } from "@/lib/auth/shareCode";
-import { apiError, isAdmin, getClientIp } from "@/lib/utils";
-import { withAdminCheck } from "@/lib/auth/middleware";
-import { createShareCodeSchema } from "@/lib/validations";
-import { auditLogs } from "@/lib/db/schema";
+import { validateShareCode, recordShareCodeUse } from "@/lib/auth/accessControl";
+import { apiError, getClientIp } from "@/lib/utils";
+import { eq } from "drizzle-orm";
 
 /**
  * POST /api/share-codes/validate
@@ -40,7 +31,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     // Record usage
     const shareCodeRecord = await db.query.shareCodes.findFirst({
-      where: (sc) => sc.code.eq(code),
+      where: (sc) => eq(sc.code, code),
     });
 
     if (shareCodeRecord) {

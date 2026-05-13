@@ -4,6 +4,7 @@ import { shareCodes, auditLogs } from "@/lib/db/schema";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth/auth";
 import { apiError, isAdmin } from "@/lib/utils";
+import { eq } from "drizzle-orm";
 
 /**
  * POST /api/share-codes/revoke
@@ -33,7 +34,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     // Find and revoke share code
     const shareCode = await db.query.shareCodes.findFirst({
-      where: (sc) => sc.id.eq(codeId),
+      where: (sc) => eq(sc.id, codeId),
     });
 
     if (!shareCode) {
@@ -47,7 +48,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const updated = await db
       .update(shareCodes)
       .set({ status: "revoked" })
-      .where((sc) => sc.id.eq(codeId))
+      .where(eq(shareCodes.id, codeId))
       .returning();
 
     // Log audit

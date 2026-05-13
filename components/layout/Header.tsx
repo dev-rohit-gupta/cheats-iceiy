@@ -1,12 +1,7 @@
-import { ReactNode } from 'react';
 import { ThemeSwitcher } from './ThemeSwitcher';
 import Link from 'next/link';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-
-interface HeaderProps {
-  children?: ReactNode;
-}
 
 export async function Header() {
   const session = await getServerSession(authOptions);

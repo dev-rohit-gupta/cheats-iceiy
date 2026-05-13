@@ -9,49 +9,31 @@ import { apiError } from "@/lib/utils";
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   try {
-    const id = parseInt(params.id, 10);
+    const { id } = await params;
+    const numId = parseInt(id, 10);
 
-    if (isNaN(id)) {
-      return NextResponse.json(
-        apiError("Invalid cheat ID", 400),
-        { status: 400 }
-      );
-    }
-
-    const cheat = await getCheatById(id);
-
+    const cheat = await getCheatById(numId);
     if (!cheat) {
-      return NextResponse.json(
-        apiError("Cheat not found", 404),
-        { status: 404 }
-      );
+      return NextResponse.json(apiError("Cheat not found", 404), { status: 404 });
     }
 
-    // Get share code from query params if provided
-    const shareCode = req.nextUrl.searchParams.get("code");
+    const url = new URL(req.url);
+    const shareCode = url.searchParams.get("code") ?? undefined;
 
-    // Check access
-    const { canAccess, reason } = await canAccessCheat(id, shareCode || undefined);
-
+    const { canAccess, reason } = await canAccessCheat(numId, shareCode);
     if (!canAccess) {
       return NextResponse.json(
-        apiError(reason || "Unauthorized", 403),
+        apiError(reason ?? "Access denied", 403),
         { status: 403 }
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      data: cheat,
-    });
+    return NextResponse.json({ data: cheat });
   } catch (error) {
-    console.error("Get cheat error:", error);
-    return NextResponse.json(
-      apiError("Internal server error", 500),
-      { status: 500 }
-    );
+    console.error("Error fetching cheat:", error);
+    return NextResponse.json(apiError("Failed to fetch cheat", 500), { status: 500 });
   }
 }

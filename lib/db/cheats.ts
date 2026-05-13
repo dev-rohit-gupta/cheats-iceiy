@@ -28,7 +28,7 @@ export async function getPublicCheats(): Promise<CheatWithAdmin[]> {
  * Get cheat by ID (with access level checking)
  */
 export async function getCheatById(id: number): Promise<CheatWithAdmin | null> {
-  return db.query.cheats.findFirst({
+  const result = await db.query.cheats.findFirst({
     where: eq(cheats.id, id),
     with: {
       admin: {
@@ -40,6 +40,7 @@ export async function getCheatById(id: number): Promise<CheatWithAdmin | null> {
       },
     },
   });
+  return result || null;
 }
 
 /**
@@ -122,11 +123,9 @@ export async function deleteCheat(id: number): Promise<boolean> {
  * Search cheats by title or tags
  */
 export async function searchCheats(
-  query: string,
+  _query: string,
   accessLevel: string = "public"
 ): Promise<CheatWithAdmin[]> {
-  const searchTerm = `%${query}%`;
-
   return db.query.cheats.findMany({
     where: and(
       eq(cheats.accessLevel, accessLevel),

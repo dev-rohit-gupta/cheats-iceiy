@@ -17,12 +17,11 @@ import { db } from "@/lib/db";
  */
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   try {
     const session = await getServerSession(authOptions);
 
-    // Check admin access
     if (!session?.user?.id || !isAdmin(session.user.role)) {
       return NextResponse.json(
         apiError("Unauthorized - Admin access required", 403),
@@ -30,21 +29,15 @@ export async function PATCH(
       );
     }
 
-    const id = parseInt(params.id, 10);
-    if (isNaN(id)) {
-      return NextResponse.json(
-        apiError("Invalid cheat ID", 400),
-        { status: 400 }
-      );
+    const { id } = await params;
+    const cheatId = parseInt(id, 10);
+    if (isNaN(cheatId)) {
+      return NextResponse.json(apiError("Invalid cheat ID", 400), { status: 400 });
     }
 
-    // Check if cheat exists
-    const existingCheat = await getCheatById(id);
+    const existingCheat = await getCheatById(cheatId);
     if (!existingCheat) {
-      return NextResponse.json(
-        apiError("Cheat not found", 404),
-        { status: 404 }
-      );
+      return NextResponse.json(apiError("Cheat not found", 404), { status: 404 });
     }
 
     const body = await req.json();
@@ -60,38 +53,31 @@ export async function PATCH(
       );
     }
 
-    // Update cheat
-    const updatedCheat = await updateCheat(id, validationResult.data);
+    const data = validationResult.data;
+    const updateData: Record<string, unknown> = {};
+    if (data.title !== undefined) updateData.title = data.title;
+    if (data.driveLink !== undefined) updateData.driveLink = data.driveLink;
+    if (data.subject !== undefined) updateData.subject = data.subject;
+    if (data.branch !== undefined) updateData.branch = data.branch ?? null;
+    if (data.notes !== undefined) updateData.notes = data.notes ?? null;
+    if (data.accessLevel !== undefined) updateData.accessLevel = data.accessLevel;
+    if (data.status !== undefined) updateData.status = data.status;
+    if (data.tags !== undefined) updateData.tags = data.tags ?? null;
 
-    if (!updatedCheat) {
-      return NextResponse.json(
-        apiError("Failed to update cheat", 500),
-        { status: 500 }
-      );
-    }
+    const cheat = await updateCheat(cheatId, updateData);
 
-    // Log audit
     await db.insert(auditLogs).values({
       adminId: session.user.id,
-      action: "update",
-      resource: "cheat",
-      resourceId: id,
-      details: JSON.stringify(validationResult.data),
+      action: 'UPDATE_CHEAT',
+      resource: 'cheat',
+      resourceId: cheatId,
+      details: JSON.stringify(updateData),
     });
 
-    return NextResponse.json(
-      apiResponse({
-        success: true,
-        message: "Cheat updated successfully",
-        data: updatedCheat,
-      })
-    );
+    return NextResponse.json(apiResponse(cheat));
   } catch (error) {
-    console.error("Update cheat error:", error);
-    return NextResponse.json(
-      apiError("Internal server error", 500),
-      { status: 500 }
-    );
+    console.error("Error updating cheat:", error);
+    return NextResponse.json(apiError("Failed to update cheat", 500), { status: 500 });
   }
 }
 
@@ -100,13 +86,12 @@ export async function PATCH(
  * Delete a cheat (admin only)
  */
 export async function DELETE(
-  req: NextRequest,
-  { params }: { params: { id: string } }
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   try {
     const session = await getServerSession(authOptions);
 
-    // Check admin access
     if (!session?.user?.id || !isAdmin(session.user.role)) {
       return NextResponse.json(
         apiError("Unauthorized - Admin access required", 403),
@@ -114,51 +99,30 @@ export async function DELETE(
       );
     }
 
-    const id = parseInt(params.id, 10);
-    if (isNaN(id)) {
-      return NextResponse.json(
-        apiError("Invalid cheat ID", 400),
-        { status: 400 }
-      );
+    const { id } = await params;
+    const cheatId = parseInt(id, 10);
+    if (isNaN(cheatId)) {
+      return NextResponse.json(apiError("Invalid cheat ID", 400), { status: 400 });
     }
 
-    // Check if cheat exists
-    const existingCheat = await getCheatById(id);
+    const existingCheat = await getCheatById(cheatId);
     if (!existingCheat) {
-      return NextResponse.json(
-        apiError("Cheat not found", 404),
-        { status: 404 }
-      );
+      return NextResponse.json(apiError("Cheat not found", 404), { status: 404 });
     }
 
-    // Delete cheat
-    const deleted = await deleteCheat(id);
+    await deleteCheat(cheatId);
 
-    if (!deleted) {
-      return NextResponse.json(
-        apiError("Failed to delete cheat", 500),
-        { status: 500 }
-      );
-    }
-
-    // Log audit
     await db.insert(auditLogs).values({
       adminId: session.user.id,
-      action: "delete",
-      resource: "cheat",
-      resourceId: id,
-      details: JSON.stringify({ title: existingCheat.title }),
+      action: 'DELETE_CHEAT',
+      resource: 'cheat',
+      resourceId: cheatId,
+      details: JSON.stringify({ deleted: true }),
     });
 
-    return NextResponse.json({
-      success: true,
-      message: "Cheat deleted successfully",
-    });
+    return NextResponse.json(apiResponse({ success: true }));
   } catch (error) {
-    console.error("Delete cheat error:", error);
-    return NextResponse.json(
-      apiError("Internal server error", 500),
-      { status: 500 }
-    );
+    console.error("Error deleting cheat:", error);
+    return NextResponse.json(apiError("Failed to delete cheat", 500), { status: 500 });
   }
 }
