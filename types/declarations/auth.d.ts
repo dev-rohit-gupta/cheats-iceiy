@@ -2,7 +2,7 @@ import { DefaultSession } from "next-auth";
 
 declare module "next-auth" {
   interface User {
-    id: number;
+    id: string | number;
     email: string;
     name: string | null;
     role: "admin" | "user";

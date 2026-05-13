@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import {use, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { FileText, Lock, Globe } from 'lucide-react';
 import type { CheatWithAdmin } from '@/types';
@@ -8,8 +8,10 @@ import type { CheatWithAdmin } from '@/types';
 export default function CheatDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+
+  const paramsData = use(params);
   const searchParams = useSearchParams();
   const [cheat, setCheat] = useState<CheatWithAdmin | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -17,7 +19,7 @@ export default function CheatDetailPage({
   const [showUnlockForm, setShowUnlockForm] = useState(false);
   const [shareCode, setShareCode] = useState('');
 
-  const cheatId = parseInt(params.id, 10);
+  const cheatId = parseInt(paramsData.id, 10);
   const codeFromUrl = searchParams.get('code');
 
   useEffect(() => {

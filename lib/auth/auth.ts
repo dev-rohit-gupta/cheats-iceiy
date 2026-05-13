@@ -5,6 +5,8 @@ import { db } from "@/lib/db";
 import { users, accounts } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { verifyPassword } from "@/lib/utils";
+import { consumeOtp, findAdminUserByEmail, normalizeEmail } from "@/lib/auth/otp";
+import type { User } from "next-auth";
 
 if (!process.env.NEXTAUTH_SECRET) {
   throw new Error("NEXTAUTH_SECRET is not set");
@@ -84,9 +86,8 @@ export const authOptions: NextAuthOptions = {
 
     // Sign in callback - only allow login if not admin (admins use OTP)
     async signIn({ user, account }) {
-      // Admin users cannot sign in via credentials or Google (they use OTP)
-      if (user.role === "admin" && account?.provider !== "google") {
-        return false;
+      if (user.role === "admin") {
+        return account?.provider === "admin-otp";
       }
 
       return true;
@@ -107,7 +108,7 @@ export const authOptions: NextAuthOptions = {
 
         // Find user by email
         const user = await db.query.users.findFirst({
-          where: eq(users.email, credentials.email.toLowerCase()),
+          where: eq(users.email, normalizeEmail(credentials.email)),
         });
 
         if (!user || !user.passwordHash) {
@@ -130,15 +131,49 @@ export const authOptions: NextAuthOptions = {
         }
 
         // Return user object with proper typing
-        const result = {
+        const result: User = {
           id: String(user.id),
           email: user.email,
           name: user.name,
           image: null,
-          role: (user.role === "admin" ? "admin" : "user"),
+          role: user.role === "admin" ? "admin" : "user",
         };
 
-        return result as any;
+        return result;
+      },
+    }),
+
+    CredentialsProvider({
+      id: "admin-otp",
+      name: "Admin OTP",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        otp: { label: "OTP", type: "text" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.otp) {
+          return null;
+        }
+
+        const user = await findAdminUserByEmail(credentials.email);
+        if (!user || user.role !== "admin") {
+          return null;
+        }
+
+        const otpResult = consumeOtp(credentials.email, credentials.otp);
+        if (!otpResult.ok) {
+          return null;
+        }
+
+        const result: User = {
+          id: String(user.id),
+          email: user.email,
+          name: user.name,
+          image: null,
+          role: "admin",
+        };
+
+        return result;
       },
     }),
 
@@ -167,15 +202,15 @@ export const authOptions: NextAuthOptions = {
           user = newUser[0];
         }
 
-        const result = {
+        const result: User = {
           id: String(user.id),
           email: user.email,
           name: user.name,
           image: profile.picture,
-          role: (user.role === "admin" ? "admin" : "user"),
+          role: user.role === "admin" ? "admin" : "user",
         };
 
-        return result as any;
+        return result;
       },
     }),
   ],

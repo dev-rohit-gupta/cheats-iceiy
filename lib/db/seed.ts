@@ -1,19 +1,29 @@
+import 'dotenv/config';
 import { db } from "./index";
 import { users, cheats, shareCodes } from "./schema";
 import bcryptjs from "bcryptjs";
 import { generateShareCode } from "@/lib/auth/shareCode";
+
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || '';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
+const ADMIN_NAME = process.env.ADMIN_NAME || "Admin User";
+
+if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
+  console.error(" ADMIN_EMAIL and ADMIN_PASSWORD must be set in the environment variables");
+  process.exit(1);
+}
 
 async function seed() {
   console.log("🌱 Seeding database...");
 
   try {
     // Create admin user
-    const adminPassword = await bcryptjs.hash("admin123456", 10);
+    const adminPassword = await bcryptjs.hash(ADMIN_PASSWORD, 10);
     const adminUser = await db
       .insert(users)
       .values({
-        email: "admin@cheats.local",
-        name: "Admin User",
+        email: ADMIN_EMAIL,
+        name: ADMIN_NAME,
         passwordHash: adminPassword,
         role: "admin",
       })
@@ -58,7 +68,7 @@ async function seed() {
     console.log("✨ Seeding complete!");
     console.log(`
 Admin Credentials:
-  Email: admin@cheats.local
+  Email: dev.rohit.roxy@gmail.com
   Password: admin123456
 
 Share Code (for testing):

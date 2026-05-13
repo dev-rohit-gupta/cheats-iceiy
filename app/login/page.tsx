@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { signIn } from 'next-auth/react';
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -32,12 +33,7 @@ export default function AdminLoginPage() {
       }
 
       setStep('otp');
-      if (data.debug_otp) {
-        setError(
-          `[DEBUG] OTP: ${data.debug_otp} (for development only)`
-        );
-      }
-    } catch (err) {
+    } catch {
       setError('Failed to request OTP');
     } finally {
       setIsLoading(false);
@@ -50,22 +46,20 @@ export default function AdminLoginPage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/auth/otp/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, otp }),
+      const result = await signIn('admin-otp', {
+        email,
+        otp,
+        redirect: false,
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.error || 'Invalid OTP');
+      if (!result?.ok) {
+        setError('Invalid OTP');
         return;
       }
 
-      // Redirect to dashboard
       router.push('/dashboard');
-    } catch (err) {
+      router.refresh();
+    } catch {
       setError('Failed to verify OTP');
     } finally {
       setIsLoading(false);

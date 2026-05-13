@@ -3,6 +3,7 @@
 import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { signIn } from 'next-auth/react';
 
 function VerifyOtpContent() {
   const router = useRouter();
@@ -37,21 +38,20 @@ function VerifyOtpContent() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/auth/otp/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, otp }),
+      const result = await signIn('admin-otp', {
+        email,
+        otp,
+        redirect: false,
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.error || 'Invalid OTP');
+      if (!result?.ok) {
+        setError('Invalid OTP');
         return;
       }
 
       router.push('/dashboard');
-    } catch (err) {
+      router.refresh();
+    } catch {
       setError('Failed to verify OTP');
     } finally {
       setIsLoading(false);
@@ -108,7 +108,7 @@ function VerifyOtpContent() {
           </form>
 
           <div className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
-            <p>Didn't receive the code? Check your spam folder.</p>
+            <p>Didn&apos;t receive the code? Check your spam folder.</p>
           </div>
         </div>
       </div>
