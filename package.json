@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:generate": "drizzle-kit generate:pg",
+    "db:migrate": "node -r ts-node/register lib/db/migrate.ts",
+    "db:seed": "node -r ts-node/register lib/db/seed.ts",
+    "db:push": "drizzle-kit push:pg"
   },
   "dependencies": {
     "next": "16.2.6",
