@@ -34,6 +34,17 @@ export default function EditCheatPage() {
     tags: [],
   });
 
+  const normalizeTags = (tags: any): string[] => {
+    if (Array.isArray(tags)) return tags;
+    if (typeof tags === 'string') {
+      return tags
+        .split(',')
+        .map((t) => t.trim())
+        .filter((t) => t);
+    }
+    return [];
+  };
+
   useEffect(() => {
     async function loadCheat() {
       try {
@@ -44,7 +55,7 @@ export default function EditCheatPage() {
         }
         const data = await response.json();
         if (data.data) {
-          setFormData(data.data);
+          setFormData({ ...data.data, tags: normalizeTags(data.data.tags) });
         }
       } catch (err) {
         setError('Failed to load cheat');
