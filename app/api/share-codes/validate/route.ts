@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
 import { validateShareCode, recordShareCodeUse } from "@/lib/auth/accessControl";
 import { apiError, getClientIp } from "@/lib/utils";
-import { eq } from "drizzle-orm";
 
 /**
  * POST /api/share-codes/validate
@@ -30,17 +28,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     // Record usage
-    const shareCodeRecord = await db.query.shareCodes.findFirst({
-      where: (sc) => eq(sc.code, code),
-    });
-
-    if (shareCodeRecord) {
+    if (validation.shareCodeId) {
       const clientIp = getClientIp(
         req.headers.get("x-forwarded-for"),
         req.headers.get("x-real-ip")
       );
       await recordShareCodeUse(
-        shareCodeRecord.id,
+        validation.shareCodeId,
         clientIp,
         req.headers.get("user-agent") || undefined
       );

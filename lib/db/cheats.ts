@@ -1,73 +1,75 @@
 import { db } from "@/lib/db";
-import { cheats, favorites } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { cheats, favorites, users } from "@/lib/db/schema";
+import { eq, and, getTableColumns } from "drizzle-orm";
 import type { Cheat, CheatInsert, CheatWithAdmin } from "@/types";
+
+const cheatColumns = getTableColumns(cheats);
+const adminColumns = {
+  id: users.id,
+  name: users.name,
+  email: users.email,
+};
 
 /**
  * Get all public cheats
  */
 export async function getPublicCheats(): Promise<CheatWithAdmin[]> {
-  return db.query.cheats.findMany({
-    where: and(
-      eq(cheats.accessLevel, "public"),
-      eq(cheats.status, "active")
-    ),
-    with: {
-      admin: {
-        columns: {
-          id: true,
-          name: true,
-          email: true,
-        },
-      },
-    },
-  });
+  return db
+    .select({
+      ...cheatColumns,
+      admin: adminColumns,
+    })
+    .from(cheats)
+    .innerJoin(users, eq(cheats.adminId, users.id))
+    .where(
+      and(
+        eq(cheats.accessLevel, "public"),
+        eq(cheats.status, "active")
+      )
+    );
 }
 
 /**
  * Get cheat by ID (with access level checking)
  */
 export async function getCheatById(id: number): Promise<CheatWithAdmin | null> {
-  const result = await db.query.cheats.findFirst({
-    where: eq(cheats.id, id),
-    with: {
-      admin: {
-        columns: {
-          id: true,
-          name: true,
-          email: true,
-        },
-      },
-    },
-  });
-  return result || null;
+  const rows = await db
+    .select({
+      ...cheatColumns,
+      admin: adminColumns,
+    })
+    .from(cheats)
+    .innerJoin(users, eq(cheats.adminId, users.id))
+    .where(eq(cheats.id, id))
+    .limit(1);
+
+  return rows[0] || null;
 }
 
 /**
  * Get all cheats (admin only)
  */
 export async function getAllCheats(): Promise<CheatWithAdmin[]> {
-  return db.query.cheats.findMany({
-    orderBy: (t) => [t.createdAt],
-    with: {
-      admin: {
-        columns: {
-          id: true,
-          name: true,
-          email: true,
-        },
-      },
-    },
-  });
+  return db
+    .select({
+      ...cheatColumns,
+      admin: adminColumns,
+    })
+    .from(cheats)
+    .innerJoin(users, eq(cheats.adminId, users.id))
+    .orderBy(cheats.createdAt);
 }
 
 /**
  * Get cheats by admin (for dashboard)
  */
 export async function getCheatsByAdmin(adminId: number): Promise<Cheat[]> {
-  return db.query.cheats.findMany({
-    where: eq(cheats.adminId, adminId),
-  });
+  return db
+    .select({
+      ...cheatColumns,
+    })
+    .from(cheats)
+    .where(eq(cheats.adminId, adminId));
 }
 
 /**
@@ -126,21 +128,19 @@ export async function searchCheats(
   _query: string,
   accessLevel: string = "public"
 ): Promise<CheatWithAdmin[]> {
-  return db.query.cheats.findMany({
-    where: and(
-      eq(cheats.accessLevel, accessLevel),
-      eq(cheats.status, "active")
-    ),
-    with: {
-      admin: {
-        columns: {
-          id: true,
-          name: true,
-          email: true,
-        },
-      },
-    },
-  });
+  return db
+    .select({
+      ...cheatColumns,
+      admin: adminColumns,
+    })
+    .from(cheats)
+    .innerJoin(users, eq(cheats.adminId, users.id))
+    .where(
+      and(
+        eq(cheats.accessLevel, accessLevel),
+        eq(cheats.status, "active")
+      )
+    );
 }
 
 /**
@@ -174,22 +174,13 @@ export async function removeFromFavorites(userId: number, cheatId: number): Prom
  * Get user favorites
  */
 export async function getUserFavorites(userId: number): Promise<CheatWithAdmin[]> {
-  const userFavorites = await db.query.favorites.findMany({
-    where: eq(favorites.userId, userId),
-    with: {
-      cheat: {
-        with: {
-          admin: {
-            columns: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-        },
-      },
-    },
-  });
-
-  return userFavorites.map((f) => f.cheat);
+  return db
+    .select({
+      ...cheatColumns,
+      admin: adminColumns,
+    })
+    .from(favorites)
+    .innerJoin(cheats, eq(favorites.cheatId, cheats.id))
+    .innerJoin(users, eq(cheats.adminId, users.id))
+    .where(eq(favorites.userId, userId));
 }

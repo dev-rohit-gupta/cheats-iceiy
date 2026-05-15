@@ -95,7 +95,16 @@ export function consumeOtp(email: string, otp: string): {
 }
 
 export async function findAdminUserByEmail(email: string) {
-  return db.query.users.findFirst({
-    where: eq(users.email, normalizeEmail(email)),
-  });
+  const rows = await db
+    .select({
+      id: users.id,
+      email: users.email,
+      name: users.name,
+      role: users.role,
+    })
+    .from(users)
+    .where(eq(users.email, normalizeEmail(email)))
+    .limit(1);
+
+  return rows[0];
 }

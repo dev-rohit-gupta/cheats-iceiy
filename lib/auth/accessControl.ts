@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { shareCodes, shareCodeUses, cheats } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { isExpired } from "@/lib/utils";
 
 export interface ShareCodeValidationResult {
@@ -8,6 +8,7 @@ export interface ShareCodeValidationResult {
   error?: string;
   cheatId?: number;
   code?: string;
+  shareCodeId?: number;
 }
 
 /**
@@ -22,12 +23,20 @@ export async function validateShareCode(
   }
 
   // Find share code
-  const shareCode = await db.query.shareCodes.findFirst({
-    where: eq(shareCodes.code, code),
-    with: {
-      cheat: true,
-    },
-  });
+  const shareCodeRows = await db
+    .select({
+      id: shareCodes.id,
+      cheatId: shareCodes.cheatId,
+      status: shareCodes.status,
+      expiresAt: shareCodes.expiresAt,
+      usageLimit: shareCodes.usageLimit,
+      usageCount: shareCodes.usageCount,
+    })
+    .from(shareCodes)
+    .where(eq(shareCodes.code, code))
+    .limit(1);
+
+  const shareCode = shareCodeRows[0];
 
   if (!shareCode) {
     return { valid: false, error: "Share code not found" };
@@ -63,7 +72,12 @@ export async function validateShareCode(
     return { valid: false, error: "Share code usage limit reached" };
   }
 
-  return { valid: true, cheatId: shareCode.cheatId, code };
+  return {
+    valid: true,
+    cheatId: shareCode.cheatId,
+    code,
+    shareCodeId: shareCode.id,
+  };
 }
 
 /**
@@ -74,21 +88,15 @@ export async function recordShareCodeUse(
   ipAddress: string,
   userAgent?: string
 ): Promise<void> {
-  // Increment usage count
-  const shareCode = await db.query.shareCodes.findFirst({
-    where: eq(shareCodes.id, codeId),
-  });
+  const updatedRows = await db
+    .update(shareCodes)
+    .set({ usageCount: sql`${shareCodes.usageCount} + 1` })
+    .where(eq(shareCodes.id, codeId))
+    .returning({ id: shareCodes.id });
 
-  if (!shareCode) {
+  if (updatedRows.length === 0) {
     throw new Error("Share code not found");
   }
-
-  // Update usage count
-  const newCount = shareCode.usageCount + 1;
-  await db
-    .update(shareCodes)
-    .set({ usageCount: newCount })
-    .where(eq(shareCodes.id, codeId));
 
   // Record usage
   await db.insert(shareCodeUses).values({
@@ -106,9 +114,15 @@ export async function canAccessCheat(
   cheatId: number,
   shareCode?: string
 ): Promise<{ canAccess: boolean; reason?: string }> {
-  const cheat = await db.query.cheats.findFirst({
-    where: eq(cheats.id, cheatId),
-  });
+  const cheatRows = await db
+    .select({
+      accessLevel: cheats.accessLevel,
+    })
+    .from(cheats)
+    .where(eq(cheats.id, cheatId))
+    .limit(1);
+
+  const cheat = cheatRows[0];
 
   if (!cheat) {
     return { canAccess: false, reason: "Cheat not found" };

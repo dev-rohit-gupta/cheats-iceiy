@@ -33,9 +33,15 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     // Find and revoke share code
-    const shareCode = await db.query.shareCodes.findFirst({
-      where: (sc) => eq(sc.id, codeId),
-    });
+    const shareCodeRows = await db
+      .select({
+        code: shareCodes.code,
+      })
+      .from(shareCodes)
+      .where(eq(shareCodes.id, codeId))
+      .limit(1);
+
+    const shareCode = shareCodeRows[0];
 
     if (!shareCode) {
       return NextResponse.json(

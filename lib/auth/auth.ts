@@ -34,15 +34,30 @@ export const authOptions: NextAuthOptions = {
 
       // Handle Google OAuth account linking
       if (account?.provider === "google" && profile?.email) {
-        const existingUser = await db.query.users.findFirst({
-          where: eq(users.email, profile.email),
-        });
+        const existingUserRows = await db
+          .select({
+            id: users.id,
+            email: users.email,
+            name: users.name,
+            role: users.role,
+          })
+          .from(users)
+          .where(eq(users.email, profile.email))
+          .limit(1);
+
+        const existingUser = existingUserRows[0];
 
         if (existingUser) {
           // Link Google account to existing user
-          const existingAccount = await db.query.accounts.findFirst({
-            where: eq(accounts.providerAccountId, account.providerAccountId),
-          });
+          const existingAccountRows = await db
+            .select({
+              id: accounts.id,
+            })
+            .from(accounts)
+            .where(eq(accounts.providerAccountId, account.providerAccountId))
+            .limit(1);
+
+          const existingAccount = existingAccountRows[0];
 
           if (!existingAccount) {
             await db.insert(accounts).values({
@@ -107,9 +122,19 @@ export const authOptions: NextAuthOptions = {
         }
 
         // Find user by email
-        const user = await db.query.users.findFirst({
-          where: eq(users.email, normalizeEmail(credentials.email)),
-        });
+        const userRows = await db
+          .select({
+            id: users.id,
+            email: users.email,
+            name: users.name,
+            role: users.role,
+            passwordHash: users.passwordHash,
+          })
+          .from(users)
+          .where(eq(users.email, normalizeEmail(credentials.email)))
+          .limit(1);
+
+        const user = userRows[0];
 
         if (!user || !user.passwordHash) {
           return null;
@@ -183,9 +208,18 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
       async profile(profile) {
         // Find or create user
-        let user = await db.query.users.findFirst({
-          where: eq(users.email, profile.email),
-        });
+        const userRows = await db
+          .select({
+            id: users.id,
+            email: users.email,
+            name: users.name,
+            role: users.role,
+          })
+          .from(users)
+          .where(eq(users.email, profile.email))
+          .limit(1);
+
+        let user = userRows[0];
 
         if (!user) {
           // Create new user from Google profile

@@ -42,9 +42,16 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const { currentPassword, newPassword } = validationResult.data;
 
     // Get user from database
-    const user = await db.query.users.findFirst({
-      where: eq(users.id, session.user.id),
-    });
+    const userRows = await db
+      .select({
+        id: users.id,
+        passwordHash: users.passwordHash,
+      })
+      .from(users)
+      .where(eq(users.id, session.user.id))
+      .limit(1);
+
+    const user = userRows[0];
 
     if (!user || !user.passwordHash) {
       return NextResponse.json(

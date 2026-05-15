@@ -40,59 +40,58 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     // Generate unique code
     let code: string;
-    let isUnique = false;
     let attempts = 0;
+    let newShareCode: typeof shareCodes.$inferSelect | undefined;
 
-    while (!isUnique && attempts < 10) {
+    while (attempts < 10) {
       code = generateShareCode();
-      const existing = await db.query.shareCodes.findFirst({
-        where: (sc, { eq }) => eq(sc.code, code),
-      });
-      if (!existing) {
-        isUnique = true;
+      const inserted = await db
+        .insert(shareCodes)
+        .values({
+          code,
+          cheatId,
+          expiresAt: expiresAt ?? null,
+          usageLimit: usageLimit ?? null,
+          scope,
+          createdBy: session.user.id,
+        })
+        .onConflictDoNothing({ target: shareCodes.code })
+        .returning();
+
+      if (inserted.length > 0) {
+        newShareCode = inserted[0];
+        break;
       }
+
       attempts++;
     }
 
-    if (!isUnique) {
+    if (!newShareCode) {
       return NextResponse.json(
         apiError("Failed to generate unique share code", 500),
         { status: 500 }
       );
     }
 
-    // Create share code
-    const newShareCode = await db
-      .insert(shareCodes)
-      .values({
-        code: code!,
-        cheatId,
-        expiresAt: expiresAt ?? null,
-        usageLimit: usageLimit ?? null,
-        scope,
-        createdBy: session.user.id,
-      })
-      .returning();
-
     // Log audit
     await db.insert(auditLogs).values({
       adminId: session.user.id,
       action: "create",
       resource: "share_code",
-      resourceId: newShareCode[0].id,
+      resourceId: newShareCode.id,
       details: JSON.stringify({
-        code: newShareCode[0].code,
-        cheatId: newShareCode[0].cheatId,
-        expiresAt: newShareCode[0].expiresAt,
+        code: newShareCode.code,
+        cheatId: newShareCode.cheatId,
+        expiresAt: newShareCode.expiresAt,
       }),
     });
 
     return NextResponse.json({
       success: true,
       message: "Share code generated",
-      code: newShareCode[0].code,
-      id: newShareCode[0].id,
-      expiresAt: newShareCode[0].expiresAt,
+      code: newShareCode.code,
+      id: newShareCode.id,
+      expiresAt: newShareCode.expiresAt,
     });
   } catch (error) {
     console.error("Generate share code error:", error);

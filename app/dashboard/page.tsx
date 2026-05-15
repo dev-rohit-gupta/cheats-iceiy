@@ -77,6 +77,12 @@ export default async function DashboardPage() {
             → Manage Cheats
           </Link>
           <Link
+            href="/dashboard/users"
+            className="block p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-blue-600 dark:text-blue-400 font-medium transition-colors"
+          >
+            → Manage Users
+          </Link>
+          <Link
             href="/account/security"
             className="block p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-blue-600 dark:text-blue-400 font-medium transition-colors"
           >
