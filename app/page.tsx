@@ -1,5 +1,6 @@
 import { getPublicCheats } from '@/lib/db/cheats';
 import { CheatCard } from '@/components/cheats';
+import { AdSlot } from '@/components/ads';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 
@@ -9,6 +10,34 @@ export default async function HomePage() {
 
   return (
     <div>
+      <AdSlot
+        slotId="home_top_banner"
+        minHeight={90}
+        label="Home top banner"
+        inlineScript={`window.atOptions = {
+  'key': 'a1fd37fbb77c39a58a69cc7177763f0c',
+  'format': 'iframe',
+  'height': 90,
+  'width': 728,
+  'params': {}
+};`}
+        scriptSrc="https://www.highperformanceformat.com/a1fd37fbb77c39a58a69cc7177763f0c/invoke.js"
+        className="hidden md:block mb-8 rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900"
+      />
+      <AdSlot
+        slotId="home_top_banner_mobile"
+        minHeight={50}
+        label="Home top banner mobile"
+        inlineScript={`window.atOptions = {
+  'key': 'b5bae9f2e225fcfe5bbdbe7e75629512',
+  'format': 'iframe',
+  'height': 50,
+  'width': 320,
+  'params': {}
+};`}
+        scriptSrc="https://www.highperformanceformat.com/b5bae9f2e225fcfe5bbdbe7e75629512/invoke.js"
+        className="md:hidden mb-6 rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900"
+      />
       {/* Hero Section */}
       <section className="text-center py-12 md:py-20">
         <div className="max-w-2xl mx-auto">
@@ -35,6 +64,16 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      <AdSlot
+        slotId="home_inline_native"
+        minHeight={250}
+        label="Home inline ad"
+        containerId="container-e33059460be7441d73eb391a6f8f5276"
+        scriptSrc="https://pl29468349.effectivecpmnetwork.com/e33059460be7441d73eb391a6f8f5276/invoke.js"
+        scriptAttributes={{ 'data-cfasync': 'false' }}
+        className="mb-12 rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900"
+      />
 
       {/* Features Section */}
       <section className="py-12 md:py-16 grid md:grid-cols-3 gap-8 mb-12">
@@ -107,6 +146,35 @@ export default async function HomePage() {
           Sign Up Free
         </Link>
       </section>
+
+      <AdSlot
+        slotId="home_footer_banner"
+        minHeight={90}
+        label="Home footer banner"
+        inlineScript={`window.atOptions = {
+  'key': 'a1fd37fbb77c39a58a69cc7177763f0c',
+  'format': 'iframe',
+  'height': 90,
+  'width': 728,
+  'params': {}
+};`}
+        scriptSrc="https://www.highperformanceformat.com/a1fd37fbb77c39a58a69cc7177763f0c/invoke.js"
+        className="mt-12 rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900"
+      />
+      <AdSlot
+        slotId="home_footer_banner_mobile"
+        minHeight={50}
+        label="Home footer banner mobile"
+        inlineScript={`window.atOptions = {
+  'key': 'b5bae9f2e225fcfe5bbdbe7e75629512',
+  'format': 'iframe',
+  'height': 50,
+  'width': 320,
+  'params': {}
+};`}
+        scriptSrc="https://www.highperformanceformat.com/b5bae9f2e225fcfe5bbdbe7e75629512/invoke.js"
+        className="mt-6 md:hidden rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900"
+      />
     </div>
   );
 }

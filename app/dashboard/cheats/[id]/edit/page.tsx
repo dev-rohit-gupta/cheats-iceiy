@@ -73,10 +73,15 @@ export default function EditCheatPage() {
     setIsSaving(true);
 
     try {
+      const payload = {
+        ...formData,
+        tags: formData.tags.length > 0 ? formData.tags.join(', ') : '',
+      };
+
       const response = await fetch(`/api/admin/cheats/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();

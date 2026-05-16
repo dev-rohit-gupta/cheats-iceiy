@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import Script from "next/script";
+import { Analytics } from "@vercel/analytics/react";
 import { Header, Footer } from "@/components/layout";
 import { Providers } from "./providers";
 import "./globals.css";
@@ -13,9 +15,25 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const gaId = process.env.NEXT_PUBLIC_GA_ID;
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-50 transition-colors">
+        {gaId ? (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
+              strategy="afterInteractive"
+            />
+            <Script id="ga-init" strategy="afterInteractive">
+              {`window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', '${gaId}', { anonymize_ip: true });`}
+            </Script>
+          </>
+        ) : null}
         <Providers>
           <div className="flex flex-col min-h-screen">
             <Header />
@@ -24,6 +42,7 @@ export default function RootLayout({
             </main>
             <Footer />
           </div>
+          <Analytics />
         </Providers>
       </body>
     </html>
