@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import {
   hashPassword,
   verifyPassword,
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // Update password
     await db
       .update(users)
-      .set({ passwordHash: newPasswordHash })
+      .set({ passwordHash: newPasswordHash, authVersion: sql`${users.authVersion} + 1`, updatedAt: new Date() })
       .where(eq(users.id, session.user.id));
 
     return NextResponse.json({

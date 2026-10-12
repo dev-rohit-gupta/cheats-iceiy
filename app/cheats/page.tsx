@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { CheatCard } from '@/components/cheats';
 import { AdSlot } from '@/components/ads';
 import { Search } from 'lucide-react';
@@ -10,17 +10,23 @@ export default function CheatsPage() {
   const [cheats, setCheats] = useState<CheatWithAdmin[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [subject, setSubject] = useState('all');
+  const [branch, setBranch] = useState('all');
+  const [sort, setSort] = useState<'newest' | 'oldest' | 'az'>('newest');
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
     async function loadCheats() {
       try {
         const response = await fetch('/api/cheats');
         const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Could not load resources');
         if (data.data) {
           setCheats(data.data);
         }
       } catch (error) {
         console.error('Failed to load cheats:', error);
+        setLoadError('Could not load resources. Please refresh the page.');
       } finally {
         setIsLoading(false);
       }
@@ -29,12 +35,15 @@ export default function CheatsPage() {
     loadCheats();
   }, []);
 
-  const filteredCheats = cheats.filter(
-    (cheat) =>
-      cheat.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      cheat.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      cheat.tags?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const subjects = useMemo(() => [...new Set(cheats.map(c => c.subject).filter(Boolean))].sort(), [cheats]);
+  const branches = useMemo(() => [...new Set(cheats.map(c => c.branch).filter((b): b is string => Boolean(b)))].sort(), [cheats]);
+  const filteredCheats = useMemo(() => cheats.filter(cheat => {
+    const q = searchQuery.toLowerCase().trim();
+    const matchesSearch = !q || [cheat.title, cheat.subject, cheat.tags, cheat.branch].some(v => v?.toLowerCase().includes(q));
+    return matchesSearch && (subject === 'all' || cheat.subject === subject) && (branch === 'all' || cheat.branch === branch);
+  }).sort((a,b) => sort === 'az' ? a.title.localeCompare(b.title) :
+    sort === 'newest' ? (Date.parse(String(b.createdAt ?? '')) || 0) - (Date.parse(String(a.createdAt ?? '')) || 0) :
+    (Date.parse(String(a.createdAt ?? '')) || 0) - (Date.parse(String(b.createdAt ?? '')) || 0)), [cheats, searchQuery, subject, branch, sort]);
 
   const firstBatch = filteredCheats.slice(0, 6);
   const remainingCheats = filteredCheats.slice(6);
@@ -66,6 +75,13 @@ export default function CheatsPage() {
               />
             </div>
           </div>
+
+          <div className="mb-6 flex flex-wrap gap-3">
+            <label className="text-sm flex-1 min-w-[135px]">Subject<select aria-label="Filter by subject" value={subject} onChange={e=>setSubject(e.target.value)} className="mt-1 w-full p-2 rounded-lg border dark:border-gray-700 bg-white dark:bg-gray-900"><option value="all">All subjects</option>{subjects.map(s=><option key={s} value={s}>{s}</option>)}</select></label>
+            <label className="text-sm flex-1 min-w-[135px]">Branch<select aria-label="Filter by branch" value={branch} onChange={e=>setBranch(e.target.value)} className="mt-1 w-full p-2 rounded-lg border dark:border-gray-700 bg-white dark:bg-gray-900"><option value="all">All branches</option>{branches.map(b=><option key={b} value={b}>{b}</option>)}</select></label>
+            <label className="text-sm flex-1 min-w-[135px]">Sort by<select aria-label="Sort resources" value={sort} onChange={e=>setSort(e.target.value as 'newest'|'oldest'|'az')} className="mt-1 w-full p-2 rounded-lg border dark:border-gray-700 bg-white dark:bg-gray-900"><option value="newest">Newest first</option><option value="oldest">Oldest first</option><option value="az">Title A-Z</option></select></label>
+          </div>
+          {loadError && <p role="alert" className="mb-6 rounded-lg p-3 bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300">{loadError}</p>}
 
           {/* Results */}
           {isLoading ? (

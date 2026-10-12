@@ -2,15 +2,24 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Plus } from 'lucide-react';
+import { Plus, Megaphone } from 'lucide-react';
+import { db } from '@/lib/db';
+import { cheats, shareCodes, shareCodeUses } from '@/lib/db/schema';
+import { count, eq } from 'drizzle-orm';
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
 
   // Only admins can access dashboard
-  if (!session?.user || session.user.role !== 'admin') {
+  if (!session?.user || !['admin', 'super_admin'].includes(session.user.role)) {
     redirect('/login');
   }
+
+  const [[{ count: totalCheats }], [{ count: activeCodes }], [{ count: accessCount }]] = await Promise.all([
+    db.select({ count: count() }).from(cheats),
+    db.select({ count: count() }).from(shareCodes).where(eq(shareCodes.status, 'active')),
+    db.select({ count: count() }).from(shareCodeUses),
+  ]);
 
   return (
     <div>
@@ -40,7 +49,7 @@ export default async function DashboardPage() {
             Total Cheats
           </p>
           <p className="text-3xl font-bold text-gray-900 dark:text-white">
-            —
+            {totalCheats}
           </p>
         </div>
 
@@ -49,7 +58,7 @@ export default async function DashboardPage() {
             Active Share Codes
           </p>
           <p className="text-3xl font-bold text-gray-900 dark:text-white">
-            —
+            {activeCodes}
           </p>
         </div>
 
@@ -58,7 +67,7 @@ export default async function DashboardPage() {
             Total Accesses
           </p>
           <p className="text-3xl font-bold text-gray-900 dark:text-white">
-            —
+            {accessCount}
           </p>
         </div>
       </div>
@@ -76,12 +85,13 @@ export default async function DashboardPage() {
           >
             → Manage Cheats
           </Link>
-          <Link
+          {session.user.role === 'super_admin' && <Link
             href="/dashboard/users"
             className="block p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-blue-600 dark:text-blue-400 font-medium transition-colors"
           >
             → Manage Users
-          </Link>
+          </Link>}
+          {session.user.role === 'super_admin' && <Link href="/dashboard/ads" className="flex items-center gap-2 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-blue-600 dark:text-blue-400 font-medium"><Megaphone className="h-4 w-4"/> Advertisement Settings</Link>}
           <Link
             href="/account/security"
             className="block p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-blue-600 dark:text-blue-400 font-medium transition-colors"

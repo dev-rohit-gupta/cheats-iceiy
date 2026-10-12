@@ -9,7 +9,7 @@ import Link from 'next/link';
 export default async function ShareCodesPage() {
   const session = await getServerSession(authOptions);
 
-  if (!session?.user || session.user.role !== 'admin') {
+  if (!session?.user || !['admin', 'super_admin'].includes(session.user.role)) {
     redirect('/login');
   }
 

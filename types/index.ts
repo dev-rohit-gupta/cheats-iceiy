@@ -20,7 +20,7 @@ export interface AuthUser {
   id: number;
   email: string;
   name: string | null;
-  role: "admin" | "user";
+  role: "super_admin" | "admin" | "user";
 }
 
 export interface CheatWithAdmin extends Cheat {

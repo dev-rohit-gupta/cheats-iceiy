@@ -18,7 +18,8 @@ export const users = pgTable(
     name: varchar("name", { length: 255}),
     passwordHash: varchar("password_hash", { length: 255 }),
     googleId: varchar("google_id", { length: 255 }).unique(),
-    role: varchar("role", { length: 50 }).notNull().default("user"), // "admin" or "user"
+    role: varchar("role", { length: 50 }).notNull().default("user"), // user | admin | super_admin
+    authVersion: integer("auth_version").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
   },
@@ -27,6 +28,13 @@ export const users = pgTable(
     googleIdIdx: uniqueIndex("users_google_id_idx").on(table.googleId),
   })
 );
+
+// Centralized runtime settings (values are validated on read/write).
+export const siteSettings = pgTable("site_settings", {
+  key: varchar("key", { length: 100 }).primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
 
 // NextAuth Accounts table
 export const accounts = pgTable(

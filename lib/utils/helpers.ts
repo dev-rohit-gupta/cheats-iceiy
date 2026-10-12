@@ -47,7 +47,7 @@ export function generateRandomString(length: number = 32): string {
  * ALWAYS check this server-side, never rely on client-side checks
  */
 export function isAdmin(role: string | null | undefined): boolean {
-  return role === "admin";
+  return role === "admin" || role === "super_admin";
 }
 
 /**

@@ -1,15 +1,17 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import Script from 'next/script';
+import { useEffect, useMemo, useState } from 'react';
+import { isAdSlotAllowed } from '@/lib/ads/policy';
+import type { AdSettings } from '@/lib/ads/settings';
 
-const ADS_ENABLED = process.env.NEXT_PUBLIC_ADS_ENABLED === 'true';
-
-declare global {
-  interface Window {
-    dataLayer?: unknown[];
-    gtag?: (...args: unknown[]) => void;
+// One no-store request per page load; disabled on errors.
+let adConfigPromise: Promise<AdSettings | null> | null = null;
+function loadAdConfig(): Promise<AdSettings | null> {
+  if (!adConfigPromise) {
+    adConfigPromise = fetch('/api/ads/settings', { cache: 'no-store' })
+      .then(r => r.ok ? r.json() as Promise<AdSettings> : null).catch(() => null);
   }
+  return adConfigPromise;
 }
 
 type AdSlotProps = {
@@ -24,65 +26,34 @@ type AdSlotProps = {
 };
 
 export function AdSlot({
-  slotId,
-  containerId,
-  className,
-  minHeight = 90,
-  scriptSrc,
-  inlineScript,
-  scriptAttributes,
-  label = 'Advertisement',
+  slotId, containerId, className, minHeight = 90, scriptSrc, inlineScript, label = 'Advertisement',
 }: AdSlotProps) {
-  if (!ADS_ENABLED) {
-    return null;
-  }
+  const [config, setConfig] = useState<AdSettings | null>(null);
+  useEffect(() => { let mounted = true; void loadAdConfig().then(v => { if (mounted) setConfig(v); }); return () => { mounted = false; }; }, []);
 
-  const trackedRef = useRef(false);
+  const permitted = isAdSlotAllowed(config, scriptSrc, slotId);
 
-  useEffect(() => {
-    if (trackedRef.current) {
-      return;
-    }
+  // A sandboxed opaque-origin iframe ensures a hostile ad cannot navigate the host
+  // page or open pop-ups. Each placement has isolated globals and container IDs.
+  const markup = useMemo(() => {
+    if (!permitted || !scriptSrc) return '';
+    const container = containerId ? `<div id="${containerId}"></div>` : '';
+    const optionsScript = inlineScript ? `<script>${inlineScript.replace(/<\/script/gi, '<\\/script')}</script>` : '';
+    const safeSrc = scriptSrc.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+    return `<!doctype html><html><head><meta charset="utf-8"><meta name="referrer" content="no-referrer"><style>html,body{margin:0;overflow:hidden}*{box-sizing:border-box}</style></head><body>${container}${optionsScript}<script src="${safeSrc}" async></script></body></html>`;
+  }, [containerId, inlineScript, permitted, scriptSrc]);
 
-    trackedRef.current = true;
-
-    const detail = {
-      slotId,
-      label,
-      path: window.location.pathname,
-    };
-
-    window.dataLayer = window.dataLayer || [];
-    window.dataLayer.push({ event: 'ad_slot_rendered', ...detail });
-
-    if (typeof window.gtag === 'function') {
-      window.gtag('event', 'ad_slot_rendered', detail);
-    }
-
-    window.dispatchEvent(new CustomEvent('ad-slot-rendered', { detail }));
-  }, [label, slotId]);
-
+  if (!permitted) return null;
   return (
-    <div
-      data-ad-slot={slotId}
-      id={containerId}
-      aria-label={label}
-      className={className}
-      style={{ minHeight }}
-    >
-      {inlineScript ? (
-        <Script id={`ad-inline-${slotId}`} strategy="afterInteractive">
-          {inlineScript}
-        </Script>
-      ) : null}
-      {scriptSrc ? (
-        <Script
-          id={`ad-script-${slotId}`}
-          strategy="afterInteractive"
-          src={scriptSrc}
-          {...(scriptAttributes || {})}
-        />
-      ) : null}
+    <div data-ad-slot={slotId} className={className} style={{ minHeight }}>
+      <iframe
+        title={label}
+        srcDoc={markup}
+        sandbox="allow-scripts"
+        loading="lazy"
+        referrerPolicy="no-referrer"
+        style={{ display: 'block', width: '100%', height: minHeight, border: 0 }}
+      />
     </div>
   );
 }

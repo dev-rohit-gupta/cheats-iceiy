@@ -1,254 +1,75 @@
-# Cheats Dashboard
+# Cheats ICEIY
 
-A full-stack Next.js app to manage and consume learning resources ("cheats") with role-based access, share-code unlocks, and admin operations.
+Next.js 16 + React 19 + Drizzle/PostgreSQL study resource platform. Includes resource browsing, share codes, admin tools, super-admin account management, and configurable advertisement placements.
 
-## Highlights
+## What's new
 
-- Public catalog and cheat detail pages
-- Admin dashboard for CRUD operations on cheats
-- Access levels: public, protected, private
-- Share code generation, validation, and revocation
-- Admin OTP login flow
-- User signup/login with Google and password support
-- Drizzle ORM + PostgreSQL schema and seed flow
-- Strict TypeScript setup with Next.js App Router
+- **Password sign-in** for users, admins and super admins at `/login`. Admin email OTP was retired; no Gmail SMTP setup is required.
+- **Protected super-admin role**. The owner can create individual admin accounts, reset existing admin passwords, promote password-enabled users, revoke admin access, and audit changes at `/dashboard/users`.
+- **Ad settings dashboard** (`/dashboard/ads`) with master switch, placements and network controls. Ad scripts **default OFF** until the owner explicitly enables them.
+- **Isolated ad frames**: approved ad scripts run in sandboxed iframes without permissions to open popups or navigate the top-level site. Networks may render differently when sandboxed.
+- Improved login, account-security page, dashboard counts and searchable/filterable resource directory.
 
-## Tech Stack
+## Getting started
 
-- Next.js 16 (App Router)
-- React 19 + TypeScript
-- Tailwind CSS 4
-- NextAuth (Google + credentials-based flows)
-- Drizzle ORM + drizzle-kit
-- PostgreSQL (Neon-compatible)
-- Zod validation
-- Nodemailer (OTP emails)
+Prerequisites: Node.js 22+, PostgreSQL, npm.
 
-## Project Structure
+1. Create `.env.local` (never commit it) based on `.env.example`. CLI scripts also read `.env.local`, then `.env`.
+2. `npm ci`
+3. Initialize the database:
+   - **Fresh, empty DB**: `npm run db:migrate`
+   - **Existing DB initially managed using `db:push`**: back up the database and use `npm run db:push` after review. **Do not** run `db:migrate` for the first time against a `db:push`-initialized database without baselining its migration history; migration `0000` tries to create existing tables.
+   - **Existing DB with Drizzle migration history**: `npm run db:migrate`
+4. Bootstrap the owner account: set `ADMIN_EMAIL`, and set `ADMIN_PASSWORD` when creating a new account or initializing an existing account that has no password; then `npm run admin:bootstrap`. If the account already has a password, its hash is preserved. Run against the intended DATABASE_URL. After first setup, remove the bootstrap password from the persistent environment.
+5. `npm run dev` (production: `npm run build && npm run start`).
+6. Sign in at `/login`, open `/dashboard/users` to create separate admin accounts or initialize passwords for OTP-only legacy admins and `/dashboard/ads` to control advertisements.
 
-- App routes: [app](app)
-- API routes: [app/api](app/api)
-- Database layer: [lib/db](lib/db)
-- Auth layer: [lib/auth](lib/auth)
-- Validation schemas: [lib/validations](lib/validations)
-- Type augmentation: [types/declarations/auth.d.ts](types/declarations/auth.d.ts)
-- Proxy route protection: [proxy.ts](proxy.ts)
+For production, configure the same environment variables on Vercel and apply DB changes before deploying this version. **Back up production before schema changes.** Existing login sessions must sign in again after this release.
 
-## Prerequisites
+## Authentication
 
-- Node.js 20+ (Node 22 is fine)
-- npm
-- PostgreSQL database URL
-- Google OAuth client credentials
-- Gmail account with App Password (for OTP email flow)
+- `super_admin`: owner; can create/revoke admins and change ad settings.
+- `admin`: manages resources and share codes; cannot grant roles or change ad settings.
+- `user`: browses permitted resources; may sign in with a password or Google OAuth (if configured).
+- Google OAuth is **optional**. Administrators are not permitted to sign in using Google.
+- Passwords are bcrypt-hashed. New admin passwords must have at least 12 characters, uppercase and a number. Send initial credentials through a secure private channel; the app does not email passwords.
+- Existing passwords can only be changed by providing the current password. New sessions use `auth_version`, so role revocation and password change invalidate prior sessions.
+- `app/api/auth/otp/*` returns HTTP 410; the unused old OTP/Nodemailer utilities remain only for backwards-source compatibility and can be removed later.
 
-## Environment Setup
+## Advertisement safety
 
-1. Copy [\.env.local.example](.env.local.example) to your local env file.
-2. Fill all required values.
+The previous providers were embedded in multiple pages and could serve disruptive redirects. With the new implementation, all provider scripts are **off by default**. The super admin can enable banners, native or sidebar formats and approve each network separately. Each loaded script is isolated inside a sandboxed iframe (no top navigation or popups).
 
-Required variables:
+**No application-side flag can guarantee the behavior of a third-party network.** If a provider serves harmful content, disable that provider entirely. Set `ADS_EMERGENCY_OFF=true` on the server and redeploy to force all ads off regardless of database values.
 
-- DATABASE_URL
-- NEXTAUTH_URL
-- NEXTAUTH_SECRET
-- GOOGLE_CLIENT_ID
-- GOOGLE_CLIENT_SECRET
-- GMAIL_USER
-- GMAIL_APP_PASSWORD
-- GMAIL_FROM
-- ADMIN_EMAIL
-- ADMIN_PASSWORD
-- ADMIN_NAME
+The settings live in the new `site_settings` database table. `/api/ads/settings` only returns allowlisted booleans, never arbitrary HTML or URLs. Reload already-open resource pages to apply changed settings. Sandboxing may reduce ad fill or click tracking; verify provider terms before enabling it.
 
-Note:
+## Useful scripts
 
-- This project currently reads from [.env](.env) in scripts and server runtime.
-- For local Next.js development, you can also use .env.local. Keep one source of truth to avoid confusion.
+```sh
+npm ci
+npm run dev
+npm run build
+npm run lint
+npm run db:push
+npm run db:migrate
+npm run admin:bootstrap
+node --experimental-strip-types --test tests/ad-policy.test.mjs
+```
 
-## Installation
+## Key routes
 
-1. Install dependencies.
+- `/`, `/cheats`, `/cheats/[id]`: browse and open resources
+- `/login`: password sign-in
+- `/auth/signup`: optional Google sign-up
+- `/account/security`: set initial password or change existing password
+- `/dashboard`: admin metrics and navigation
+- `/dashboard/users`: super-admin account management
+- `/dashboard/ads`: super-admin advertisement settings
 
-	npm install
+## Operational notes
 
-2. Push schema to database.
-
-	npm run db:push
-
-3. Seed initial data.
-
-	npm run db:seed
-
-4. Start development server.
-
-	npm run dev
-
-Open http://localhost:3000.
-
-## Scripts
-
-- npm run dev: start dev server
-- npm run build: production build
-- npm run start: run production server
-- npm run lint: run eslint
-- npm run db:generate: generate Drizzle migrations
-- npm run db:migrate: run migration script
-- npm run db:push: push schema to DB
-- npm run db:seed: seed admin + sample cheat + sample share code
-
-## Authentication and Access Model
-
-### Roles
-
-- Admin: dashboard access, cheat management, share-code management
-- User: public usage + account settings
-- Visitor: public content access
-
-### Sign-in Paths
-
-- Admin OTP: request OTP, then verify to sign in
-- User Google OAuth: sign in via Google provider
-- User Credentials: email/password flow for non-admin users
-
-### Cheat Visibility
-
-- public: directly accessible
-- protected: requires valid share code to unlock content
-- private: restricted, unlock via share code/admin access
-
-## Google OAuth Setup (Critical)
-
-If you see redirect_uri_mismatch, your Google OAuth callback URL does not match what NextAuth is sending.
-
-For local development with NEXTAUTH_URL=http://localhost:3000, set in Google Cloud Console:
-
-- Authorized JavaScript origin:
-  - http://localhost:3000
-- Authorized redirect URI:
-  - http://localhost:3000/api/auth/callback/google
-
-For production, add your domain equivalents.
-
-## OTP Email Setup
-
-- Use a Gmail account and create a Gmail App Password.
-- Set GMAIL_USER and GMAIL_APP_PASSWORD.
-- Set GMAIL_FROM with a valid sender format.
-
-## Database Seeding Behavior
-
-Seed script file: [lib/db/seed.ts](lib/db/seed.ts)
-
-It creates:
-
-- Admin user from ADMIN_EMAIL, ADMIN_PASSWORD, ADMIN_NAME
-- One sample cheat
-- One sample share code
-
-If seed fails due to duplicate unique values, either clear existing seed data or update admin seed env values.
-
-## Route Overview
-
-### Public pages
-
-- /: landing/catalog
-- /cheats: browse
-- /cheats/[id]: cheat detail
-- /unlock: share-code unlock page
-
-### Auth/account pages
-
-- /login
-- /auth/signup
-- /auth/verify-otp
-- /account
-- /account/security
-
-### Admin pages
-
-- /dashboard
-- /dashboard/cheats
-- /dashboard/cheats/new
-- /dashboard/cheats/[id]/edit
-- /dashboard/share-codes
-
-### API endpoints
-
-- /api/auth/[...nextauth]
-- /api/auth/otp/request
-- /api/auth/otp/verify
-- /api/auth/password/set
-- /api/auth/password/change
-- /api/cheats
-- /api/cheats/[id]
-- /api/admin/cheats
-- /api/admin/cheats/[id]
-- /api/share-codes/generate
-- /api/share-codes/validate
-- /api/share-codes/revoke
-
-## Build and Production
-
-1. Build:
-
-	npm run build
-
-2. Start:
-
-	npm run start
-
-3. Ensure production env vars are set in your host.
-
-## Troubleshooting
-
-### Error: redirect_uri_mismatch (Google)
-
-Cause:
-
-- OAuth redirect URI in Google Console does not exactly match NEXTAUTH_URL callback path.
-
-Fix:
-
-- Add exact callback URI shown above.
-- Restart dev server after env changes.
-
-### Error: DATABASE_URL environment variable is not set
-
-Cause:
-
-- Missing or unreadable DATABASE_URL in runtime environment.
-
-Fix:
-
-- Set DATABASE_URL in active env file and restart server.
-
-### Seed script loader error with Node 22
-
-Cause:
-
-- Using node -r tsx with ESM loader edge cases.
-
-Fix:
-
-- Use npx tsx for db scripts (already configured in [package.json](package.json)).
-
-## Security Notes
-
-- Never commit real secrets.
-- Rotate any leaked secrets immediately:
-  - GOOGLE_CLIENT_SECRET
-  - NEXTAUTH_SECRET
-  - DATABASE_URL credentials
-  - GMAIL_APP_PASSWORD
-- Keep env files out of version control.
-
-## Current Status
-
-- TypeScript build passes
-- App routes and API routes are in place
-- Proxy-based route guarding is configured in [proxy.ts](proxy.ts)
-
-## License
-
-Private project.
+- **Do not run the demo `db:seed` script on an existing production database.** It creates sample resources and a new owner and can encounter duplicates. Use `admin:bootstrap` instead.
+- Set a strong unique `NEXTAUTH_SECRET` and `DATABASE_URL` before deployment. Optional: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`. Gmail SMTP credentials are **not** required.
+- The original `info.md` is a historical implementation brief, not the current auth configuration.
+- Never push `.env.local`, passwords or private database credentials to GitHub. Any previously disclosed credentials should be rotated.

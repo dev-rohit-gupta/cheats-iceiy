@@ -6,7 +6,7 @@ import Link from 'next/link';
 export default async function AccountPage() {
   const session = await getServerSession(authOptions);
 
-  if (!session?.user) {
+  if (!session?.user?.id) {
     redirect('/auth/signup');
   }
 
@@ -86,7 +86,7 @@ export default async function AccountPage() {
               </p>
             </Link>
 
-            {session.user.role === 'admin' && (
+            {['admin', 'super_admin'].includes(session.user.role) && (
               <Link
                 href="/dashboard"
                 className="block p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors"

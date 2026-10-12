@@ -1,23 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auditLogs, users } from "@/lib/db/schema";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth/auth";
-import { apiError, apiResponse, isAdmin } from "@/lib/utils";
-import { eq, sql } from "drizzle-orm";
+import { getCurrentSuperAdmin } from "@/lib/auth/permissions";
+import { apiError, apiResponse } from "@/lib/utils";
+import { eq, sql, and } from "drizzle-orm";
 
 /**
  * POST /api/admin/users/[id]/demote
- * Demote admin to user (admin only)
+ * Demote admin to user (super admin only)
  */
 export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   try {
-    const session = await getServerSession(authOptions);
+    const actor = await getCurrentSuperAdmin();
 
-    if (!session?.user?.id || !isAdmin(session.user.role)) {
+    if (!actor) {
       return NextResponse.json(
         apiError("Unauthorized - Admin access required", 403),
         { status: 403 }
@@ -30,7 +29,7 @@ export async function POST(
       return NextResponse.json(apiError("Invalid user ID", 400), { status: 400 });
     }
 
-    if (userId === session.user.id) {
+    if (userId === actor.id) {
       return NextResponse.json(
         apiError("You cannot demote yourself", 403),
         { status: 403 }
@@ -42,6 +41,7 @@ export async function POST(
         email: users.email,
         name: users.name,
         role: users.role,
+        passwordHash: users.passwordHash,
       })
       .from(users)
       .where(eq(users.id, userId))
@@ -60,25 +60,10 @@ export async function POST(
       );
     }
 
-    const adminCountRows = await db
-      .select({
-        count: sql<number>`count(*)`,
-      })
-      .from(users)
-      .where(eq(users.role, "admin"));
-
-    const adminCount = Number(adminCountRows[0]?.count || 0);
-    if (adminCount <= 1) {
-      return NextResponse.json(
-        apiError("Cannot demote the last admin", 400),
-        { status: 400 }
-      );
-    }
-
     const updated = await db
       .update(users)
-      .set({ role: "user", updatedAt: new Date() })
-      .where(eq(users.id, userId))
+      .set({ role: "user", authVersion: sql`${users.authVersion} + 1`, updatedAt: new Date() })
+      .where(and(eq(users.id, userId), eq(users.role, "admin")))
       .returning({
         id: users.id,
         email: users.email,
@@ -86,8 +71,10 @@ export async function POST(
         role: users.role,
       });
 
+    if (!updated.length) return NextResponse.json(apiError("User role changed concurrently", 409), { status: 409 });
+
     await db.insert(auditLogs).values({
-      adminId: session.user.id,
+      adminId: actor.id,
       action: "DEMOTE_USER",
       resource: "user",
       resourceId: userId,

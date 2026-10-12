@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, isNull, and } from "drizzle-orm";
 import { hashPassword, apiError } from "@/lib/utils";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth/auth";
@@ -37,15 +37,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     const { password } = validationResult.data;
 
-    // Hash password
+    // The initial setup endpoint cannot overwrite a password. Existing
+    // password holders must use /api/auth/password/change with their old password.
     const passwordHash = await hashPassword(password);
+    const updated = await db.update(users)
+      .set({ passwordHash, updatedAt: new Date() })
+      .where(and(eq(users.id, session.user.id), isNull(users.passwordHash)))
+      .returning({ id: users.id });
+    if (!updated.length) return NextResponse.json(apiError("Password already set. Use Change Password.", 409), { status: 409 });
 
-    // Update user with password hash
-    await db
-      .update(users)
-      .set({ passwordHash })
-      .where(eq(users.id, session.user.id));
-
+    // Guard against simultaneous setup requests by using a conditional UPDATE.
+    // A second call cannot change an already-set password.
     return NextResponse.json({
       success: true,
       message: "Password set successfully",

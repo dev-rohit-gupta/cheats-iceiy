@@ -3,22 +3,15 @@
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 
 export default function SignUpPage() {
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
-      const result = await signIn('google', { redirect: false });
-      if (result?.error) {
-        setError(result.error);
-      } else {
-        router.push('/account/security');
-      }
+      await signIn('google', { callbackUrl: '/account/security' });
     } catch (err) {
       setError('Failed to sign in with Google');
     } finally {

@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import "../utils/loadEnv";
 import { db } from "./index";
 import { users, cheats, shareCodes } from "./schema";
 import bcryptjs from "bcryptjs";
@@ -8,8 +8,8 @@ const ADMIN_EMAIL = process.env.ADMIN_EMAIL || '';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
 const ADMIN_NAME = process.env.ADMIN_NAME || "Admin User";
 
-if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
-  console.error(" ADMIN_EMAIL and ADMIN_PASSWORD must be set in the environment variables");
+if (!ADMIN_EMAIL || ADMIN_PASSWORD.length < 12 || !/[A-Z]/.test(ADMIN_PASSWORD) || !/[0-9]/.test(ADMIN_PASSWORD)) {
+  console.error("ADMIN_EMAIL and a strong ADMIN_PASSWORD (12+ characters, uppercase, digit) are required");
   process.exit(1);
 }
 
@@ -25,7 +25,7 @@ async function seed() {
         email: ADMIN_EMAIL,
         name: ADMIN_NAME,
         passwordHash: adminPassword,
-        role: "admin",
+        role: "super_admin",
       })
       .returning();
 
@@ -66,14 +66,7 @@ async function seed() {
     console.log("✅ Created share code:", shareCode);
 
     console.log("✨ Seeding complete!");
-    console.log(`
-Admin Credentials:
-  Email: dev.rohit.roxy@gmail.com
-  Password: admin123456
-
-Share Code (for testing):
-  ${shareCode}
-    `);
+    console.log("Super admin credentials are configured through your environment. No password is printed.");
   } catch (error) {
     console.error("❌ Seeding failed:", error);
     throw error;

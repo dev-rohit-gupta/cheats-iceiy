@@ -27,7 +27,7 @@ export async function Header() {
 
           {session?.user && (
             <>
-              {session.user.role === 'admin' && (
+              {['admin', 'super_admin'].includes(session.user.role) && (
                 <Link
                   href="/dashboard"
                   className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors font-medium"

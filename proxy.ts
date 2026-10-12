@@ -1,22 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth/auth";
+import { getToken } from "next-auth/jwt";
 
-/**
- * Protect admin routes
- * All routes under /dashboard/* require admin role
- */
 export async function proxy(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-
-  if (!session?.user) {
+  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+  const isAllowed = Boolean(token?.id && (token.role === "admin" || token.role === "super_admin"));
+  if (!isAllowed) {
+    if (request.nextUrl.pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+    }
     return NextResponse.redirect(new URL("/login", request.url));
   }
-
-  // Allow all authenticated users through (permission checks happen server-side)
+  // Always enforce live DB roles in API handlers and server actions as well.
   return NextResponse.next();
 }
 
-export const config = {
-  matcher: ["/dashboard/:path*", "/api/admin/:path*"],
-};
+export const config = { matcher: ["/dashboard/:path*", "/api/admin/:path*"] };
