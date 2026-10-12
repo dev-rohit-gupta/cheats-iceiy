@@ -1,18 +1,17 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
+import { NextResponse } from "next/server";
 
-export async function proxy(request: NextRequest) {
-  const secret = process.env.NEXTAUTH_SECRET;
-  if (!secret) throw new Error("NEXTAUTH_SECRET must be configured");
-  const token = await getToken({ req: request, secret });
-  const isAllowed = Boolean(token?.id && (token.role === "admin" || token.role === "super_admin"));
-  if (!isAllowed) {
-    if (request.nextUrl.pathname.startsWith("/api/")) {
-      return NextResponse.json({ error: "Admin access required" }, { status: 403 });
-    }
-    return NextResponse.redirect(new URL("/login", request.url));
-  }
-  // Always enforce live DB roles in API handlers and server actions as well.
+/**
+ * Authentication and authorization are deliberately enforced by the server
+ * dashboard layout and each admin API handler, not by the proxy.
+ *
+ * NextAuth v4 can use differently prefixed session cookies between local HTTP
+ * and hosted HTTPS requests. Reading the token independently in a proxy can
+ * reject a legitimate session which getServerSession() recognizes.
+ *
+ * Keep this pass-through for existing deployments containing proxy.ts.
+ * Do not put authorization logic here without also keeping the server checks.
+ */
+export function proxy() {
   return NextResponse.next();
 }
 
