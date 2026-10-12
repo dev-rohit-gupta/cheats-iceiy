@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import { SignOutButton } from '@/components/auth/SignOutButton';
 
 export default async function AccountPage() {
   const session = await getServerSession(authOptions);
@@ -100,9 +101,8 @@ export default async function AccountPage() {
               </Link>
             )}
 
-            <a
-              href="/api/auth/signout"
-              className="block p-4 rounded-lg border border-red-200 dark:border-red-800 hover:border-red-500 dark:hover:border-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
+            <SignOutButton
+              className="block w-full text-left p-4 rounded-lg border border-red-200 dark:border-red-800 hover:border-red-500 dark:hover:border-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
             >
               <p className="font-medium text-red-600 dark:text-red-400">
                 Sign Out
@@ -110,7 +110,7 @@ export default async function AccountPage() {
               <p className="text-sm text-red-600/70 dark:text-red-400/70">
                 Sign out from this account
               </p>
-            </a>
+            </SignOutButton>
           </div>
         </div>
       </div>

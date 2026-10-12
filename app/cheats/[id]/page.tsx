@@ -2,6 +2,7 @@
 
 import {use, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { FileText, Lock, Globe } from 'lucide-react';
 import type { CheatWithAdmin } from '@/types';
 
@@ -133,12 +134,12 @@ export default function CheatDetailPage({
   return (
     <div>
       {/* Back Link */}
-      <a
+      <Link
         href="/cheats"
         className="inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-500 mb-6 font-medium"
       >
         ← Back to Cheats
-      </a>
+      </Link>
 
       {/* Header */}
       <div className="mb-8">

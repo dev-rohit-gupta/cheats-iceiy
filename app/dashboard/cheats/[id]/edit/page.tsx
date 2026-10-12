@@ -34,8 +34,8 @@ export default function EditCheatPage() {
     tags: [],
   });
 
-  const normalizeTags = (tags: any): string[] => {
-    if (Array.isArray(tags)) return tags;
+  const normalizeTags = (tags: unknown): string[] => {
+    if (Array.isArray(tags)) return tags.filter((tag): tag is string => typeof tag === 'string');
     if (typeof tags === 'string') {
       return tags
         .split(',')
@@ -57,7 +57,7 @@ export default function EditCheatPage() {
         if (data.data) {
           setFormData({ ...data.data, tags: normalizeTags(data.data.tags) });
         }
-      } catch (err) {
+      } catch {
         setError('Failed to load cheat');
       } finally {
         setIsLoading(false);
@@ -92,7 +92,7 @@ export default function EditCheatPage() {
       }
 
       router.push('/dashboard/cheats');
-    } catch (err) {
+    } catch {
       setError('Failed to update cheat');
     } finally {
       setIsSaving(false);

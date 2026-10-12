@@ -1,17 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useSyncExternalStore } from 'react';
 import { useTheme } from 'next-themes';
 import { Moon, Sun } from 'lucide-react';
 
-export function ThemeSwitcher() {
-  const [mounted, setMounted] = useState(false);
-  const { theme, setTheme } = useTheme();
+const subscribe = () => () => {};
+const clientSnapshot = () => true;
+const serverSnapshot = () => false;
 
-  // Avoid hydration mismatch
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+export function ThemeSwitcher() {
+  const mounted = useSyncExternalStore(subscribe, clientSnapshot, serverSnapshot);
+  const { theme, setTheme } = useTheme();
 
   if (!mounted) return null;
 

@@ -51,6 +51,7 @@ npm ci
 npm run dev
 npm run build
 npm run lint
+npm run typecheck
 npm run db:push
 npm run db:migrate
 npm run admin:bootstrap

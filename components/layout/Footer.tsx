@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 export function Footer() {
   const currentYear = new Date().getFullYear();
 
@@ -22,20 +24,20 @@ export function Footer() {
             </h4>
             <ul className="space-y-2 text-sm">
               <li>
-                <a
+                <Link
                   href="/cheats"
                   className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
                 >
                   Browse Cheats
-                </a>
+                </Link>
               </li>
               <li>
-                <a
+                <Link
                   href="/"
                   className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
                 >
                   Home
-                </a>
+                </Link>
               </li>
             </ul>
           </div>

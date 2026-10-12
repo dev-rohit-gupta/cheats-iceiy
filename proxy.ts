@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 
 export async function proxy(request: NextRequest) {
-  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+  const secret = process.env.NEXTAUTH_SECRET;
+  if (!secret) throw new Error("NEXTAUTH_SECRET must be configured");
+  const token = await getToken({ req: request, secret });
   const isAllowed = Boolean(token?.id && (token.role === "admin" || token.role === "super_admin"));
   if (!isAllowed) {
     if (request.nextUrl.pathname.startsWith("/api/")) {

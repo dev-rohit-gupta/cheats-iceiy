@@ -38,7 +38,7 @@ export default function CreateCheatPage() {
       }
 
       router.push('/dashboard/cheats');
-    } catch (err) {
+    } catch {
       setError('Failed to create cheat');
     } finally {
       setIsLoading(false);

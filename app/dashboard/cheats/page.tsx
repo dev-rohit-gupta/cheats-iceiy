@@ -26,7 +26,7 @@ export default function CheatsManagementPage() {
         if (data.data) {
           setCheats(data.data);
         }
-      } catch (err) {
+      } catch {
         setError('Failed to load cheats');
       } finally {
         setIsLoading(false);
@@ -49,7 +49,7 @@ export default function CheatsManagementPage() {
       } else {
         setError('Failed to delete cheat');
       }
-    } catch (err) {
+    } catch {
       setError('Failed to delete cheat');
     }
   };

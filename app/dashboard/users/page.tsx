@@ -6,6 +6,13 @@ import { Plus, ShieldCheck, UserMinus } from 'lucide-react';
 
 interface UserRow { id: number; email: string; name: string | null; role: string; createdAt: string; hasPassword?: boolean; }
 
+async function fetchUsers(signal?: AbortSignal): Promise<UserRow[]> {
+  const res = await fetch('/api/admin/users?limit=200', { cache: 'no-store', signal: signal ?? null });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Could not load users');
+  return data.data?.users || [];
+}
+
 export default function UsersManagementPage() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -18,15 +25,21 @@ export default function UsersManagementPage() {
   const [replacementPassword, setReplacementPassword] = useState('');
 
   async function load() {
-    try {
-      const res = await fetch('/api/admin/users?limit=200', { cache: 'no-store' });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Could not load users');
-      setUsers(data.data?.users || []);
-    } catch (e) { setError(e instanceof Error ? e.message : 'Could not load users'); }
+    try { setUsers(await fetchUsers()); }
+    catch (e) { setError(e instanceof Error ? e.message : 'Could not load users'); }
     finally { setLoading(false); }
   }
-  useEffect(() => { void load(); }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void fetchUsers(controller.signal)
+      .then(rows => { if (!controller.signal.aborted) setUsers(rows); })
+      .catch(e => {
+        if (!controller.signal.aborted) setError(e instanceof Error ? e.message : 'Could not load users');
+      })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
+  }, []);
 
   async function create(e: React.FormEvent) {
     e.preventDefault(); setBusy('create'); setError(''); setSuccess('');

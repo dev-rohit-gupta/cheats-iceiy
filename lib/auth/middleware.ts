@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth/auth";
 import { isAdmin } from "@/lib/utils";
@@ -7,7 +7,7 @@ import { isAdmin } from "@/lib/utils";
  * Admin route protection middleware
  * Checks if user has admin role
  */
-export async function withAdminCheck(_req: NextRequest) {
+export async function withAdminCheck() {
   const session = await getServerSession(authOptions);
 
   if (!session?.user || !isAdmin(session.user.role)) {
@@ -23,7 +23,7 @@ export async function withAdminCheck(_req: NextRequest) {
 /**
  * User authentication check middleware
  */
-export async function withAuthCheck(_req: NextRequest) {
+export async function withAuthCheck() {
   const session = await getServerSession(authOptions);
 
   if (!session?.user) {

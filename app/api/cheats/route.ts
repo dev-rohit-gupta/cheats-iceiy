@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getPublicCheats, getAllCheats } from "@/lib/db/cheats";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth/auth";
@@ -8,7 +8,7 @@ import { isAdmin, apiError } from "@/lib/utils";
  * GET /api/cheats
  * List cheats (public for non-admins, all for admins)
  */
-export async function GET(_req: NextRequest): Promise<NextResponse> {
+export async function GET(): Promise<NextResponse> {
   try {
     const session = await getServerSession(authOptions);
 

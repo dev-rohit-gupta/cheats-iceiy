@@ -31,7 +31,7 @@ function UnlockContent() {
 
       // Redirect back to the cheat detail page with the code
       router.push(`/cheats/${cheatId}?code=${shareCode}`);
-    } catch (err) {
+    } catch {
       setError('Failed to unlock');
     } finally {
       setIsLoading(false);
@@ -91,7 +91,7 @@ function UnlockContent() {
           </form>
 
           <div className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
-            Don't have a share code?{' '}
+            Don&apos;t have a share code?{' '}
             <Link
               href="/"
               className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-500 font-medium"

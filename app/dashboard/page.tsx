@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import { SignOutButton } from '@/components/auth/SignOutButton';
 import { Plus, Megaphone } from 'lucide-react';
 import { db } from '@/lib/db';
 import { cheats, shareCodes, shareCodeUses } from '@/lib/db/schema';
@@ -98,12 +99,9 @@ export default async function DashboardPage() {
           >
             → Account Settings
           </Link>
-          <a
-            href="/api/auth/signout"
-            className="block p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-red-600 dark:text-red-400 font-medium transition-colors"
-          >
+          <SignOutButton className="block w-full text-left p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-red-600 dark:text-red-400 font-medium transition-colors">
             → Sign Out
-          </a>
+          </SignOutButton>
         </div>
       </div>
     </div>

@@ -12,7 +12,7 @@ export default function SignUpPage() {
     setIsLoading(true);
     try {
       await signIn('google', { callbackUrl: '/account/security' });
-    } catch (err) {
+    } catch {
       setError('Failed to sign in with Google');
     } finally {
       setIsLoading(false);
